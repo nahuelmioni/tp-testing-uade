@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>PadelZone — Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <h1>PadelZone</h1>
+    <div><span id="u-nombre"></span> (<span id="u-rol"></span>) <button id="btn-logout">Salir</button></div>
+  </header>
+  <main>
+    <div class="card">
+      <h2>Nueva reserva</h2>
+      <form id="f-nueva" class="inline">
+        <div><label>Cancha</label><select id="n-cancha"></select></div>
+        <div><label>Fecha</label><input id="n-fecha" type="date" required /></div>
+        <div><label>Hora</label><select id="n-hora"></select></div>
+        <div><label>Duración</label><select id="n-dur"><option>60</option><option>90</option><option>120</option></select></div>
+        <div><label>Cliente</label><input id="n-cliente" required /></div>
+        <div><button type="submit">Reservar</button></div>
+      </form>
+      <div id="msg-nueva"></div>
+    </div>
+
+    <div class="card">
+      <h2>Disponibilidad <small style="color:#666;font-weight:normal">(endpoint nuevo)</small></h2>
+      <form id="f-disp" class="inline">
+        <div><label>Cancha</label><select id="d-cancha"></select></div>
+        <div><label>Fecha</label><input id="d-fecha" type="date" required /></div>
+        <div><button type="submit">Consultar</button></div>
+      </form>
+      <div id="msg-disp"></div>
+    </div>
+
+    <div class="card">
+      <h2>Reservas</h2>
+      <form id="f-filtros" class="inline">
+        <div><label>Fecha</label><input id="ff-fecha" type="date" /></div>
+        <div><label>Cancha</label><select id="ff-cancha"><option value="">(todas)</option></select></div>
+        <div><label>Cliente id <small style="color:#666;font-weight:normal">(endpoint nuevo)</small></label><input id="ff-cliente" placeholder="ej: u3" /></div>
+        <div><button type="submit">Filtrar</button></div>
+        <div><button type="button" id="btn-limpiar" class="secondary">Limpiar</button></div>
+      </form>
+      <table id="t-reservas">
+        <thead><tr><th>ID</th><th>Cancha</th><th>Fecha</th><th>Hora</th><th>Dur.</th><th>Cliente</th><th>Estado</th><th>Precio</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="/static/app.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const user = PZ.user();
+    if (!PZ.token() || !user) location.href = "/";
+
+    $("u-nombre").textContent = user.nombre;
+    $("u-rol").textContent = user.rol;
+    $("btn-logout").onclick = async () => { try { await PZ.api("POST", "/auth/logout"); } catch {} PZ.clear(); location.href = "/"; };
+
+    // Hora 08:00 .. 22:00
+    for (let h = 8; h <= 22; h++) {
+      const v = String(h).padStart(2,"0") + ":00";
+      $("n-hora").add(new Option(v, v));
+    }
+
+    if (user.rol === "cliente") { $("n-cliente").value = user.nombre; $("n-cliente").readOnly = true; }
+
+    async function cargarCanchas() {
+      const canchas = await PZ.api("GET", "/canchas");
+      for (const sel of ["n-cancha","d-cancha","ff-cancha"]) {
+        if (sel !== "ff-cancha") $(sel).innerHTML = "";
+        canchas.forEach(c => $(sel).add(new Option(c.nombre, c.id)));
+      }
+    }
+
+    async function cargarReservas() {
+      const p = new URLSearchParams();
+      if ($("ff-fecha").value) p.set("fecha", $("ff-fecha").value);
+      if ($("ff-cancha").value) p.set("cancha", $("ff-cancha").value);
+      if ($("ff-cliente").value.trim()) p.set("cliente", $("ff-cliente").value.trim());
+      const q = p.toString();
+      const rows = await PZ.api("GET", "/reservas" + (q ? "?" + q : ""));
+      const tb = document.querySelector("#t-reservas tbody");
+      tb.innerHTML = "";
+      if (!rows.length) { tb.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#888">Sin reservas</td></tr>'; return; }
+      const staff = user.rol === "admin" || user.rol === "operador";
+      const admin = user.rol === "admin";
+      for (const r of rows) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${r.id}</td><td>${r.cancha}</td><td>${r.fecha}</td><td>${r.hora_inicio}</td><td>${r.duracion}</td><td>${r.nombre_cliente}</td><td>${r.estado}</td><td>$${r.precio.toLocaleString("es-AR")}</td><td class="actions"></td>`;
+        const act = tr.querySelector(".actions");
+        if (staff) {
+          const s = document.createElement("select");
+          ["pendiente","confirmada","finalizada"].forEach(e => { const o = new Option(e,e); if (e===r.estado) o.selected=true; s.add(o); });
+          s.onchange = async () => { try { await PZ.api("PATCH", `/reservas/${r.id}`, { estado: s.value }); cargarReservas(); } catch(err) { alert(err.message); } };
+          act.appendChild(s);
+        }
+        if (admin) {
+          const b = document.createElement("button");
+          b.textContent = "Borrar"; b.className="danger";
+          b.onclick = async () => { if (!confirm("¿Eliminar?")) return; try { await PZ.api("DELETE", `/reservas/${r.id}`); cargarReservas(); } catch(err) { alert(err.message); } };
+          act.appendChild(b);
+        }
+        tb.appendChild(tr);
+      }
+    }
+
+    $("f-nueva").onsubmit = async (e) => {
+      e.preventDefault();
+      const m = $("msg-nueva"); m.className=""; m.textContent="";
+      try {
+        await PZ.api("POST", "/reservas", {
+          cancha: $("n-cancha").value, fecha: $("n-fecha").value, hora_inicio: $("n-hora").value,
+          duracion: parseInt($("n-dur").value, 10), nombre_cliente: $("n-cliente").value.trim(),
+        });
+        m.className="ok"; m.textContent="Reserva creada.";
+        cargarReservas();
+      } catch(err) { m.className="error"; m.textContent=err.message; }
+    };
+
+    $("f-disp").onsubmit = async (e) => {
+      e.preventDefault();
+      const m = $("msg-disp"); m.innerHTML="";
+      try {
+        const slots = await PZ.api("GET", `/canchas/${$("d-cancha").value}/disponibilidad?fecha=${$("d-fecha").value}`);
+        m.innerHTML = slots.length ? `<p><b>Slots libres (60 min):</b> ${slots.map(s=>s.hora_inicio+"–"+s.hora_fin).join(", ")}</p>` : '<p style="color:#888">Sin slots libres.</p>';
+      } catch(err) { m.innerHTML = `<p class="error">${err.message}</p>`; }
+    };
+
+    $("f-filtros").onsubmit = (e) => { e.preventDefault(); cargarReservas(); };
+    $("btn-limpiar").onclick = () => { $("ff-fecha").value=""; $("ff-cancha").value=""; $("ff-cliente").value=""; cargarReservas(); };
+
+    (async () => {
+      try { await cargarCanchas(); await cargarReservas(); }
+      catch(err) { if (err.status===401) { PZ.clear(); location.href="/"; } else alert(err.message); }
+    })();
+  </script>
+</body>
+</html>

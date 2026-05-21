@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>PadelZone</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header><h1>PadelZone</h1><div>Reservas de canchas de pádel</div></header>
+  <main>
+    <div class="card login">
+      <div class="tabs">
+        <button id="tab-login" class="active">Iniciar sesión</button>
+        <button id="tab-reg">Registrarme</button>
+      </div>
+      <form id="form-login">
+        <label>Email <input id="li-email" required /></label>
+        <label>Password <input id="li-pass" type="password" required /></label>
+        <button type="submit">Entrar</button>
+      </form>
+      <form id="form-reg" style="display:none">
+        <label>Nombre <input id="re-nombre" required /></label>
+        <label>Email <input id="re-email" required /></label>
+        <label>Password <input id="re-pass" type="password" required /></label>
+        <button type="submit">Registrarme</button>
+      </form>
+      <div id="msg"></div>
+    </div>
+  </main>
+  <script src="/static/app.js"></script>
+  <script>
+    if (PZ.token()) location.href = "/dashboard";
+    const $ = (id) => document.getElementById(id);
+    $("tab-login").onclick = () => { $("form-login").style.display=""; $("form-reg").style.display="none"; $("tab-login").classList.add("active"); $("tab-reg").classList.remove("active"); $("msg").textContent=""; };
+    $("tab-reg").onclick = () => { $("form-reg").style.display=""; $("form-login").style.display="none"; $("tab-reg").classList.add("active"); $("tab-login").classList.remove("active"); $("msg").textContent=""; };
+    $("form-login").onsubmit = async (e) => {
+      e.preventDefault();
+      try {
+        const d = await PZ.api("POST", "/auth/login", { email: $("li-email").value.trim(), password: $("li-pass").value });
+        PZ.setSession(d.token, { id: d.user_id, nombre: d.nombre, rol: d.rol });
+        location.href = "/dashboard";
+      } catch (err) { $("msg").className="error"; $("msg").textContent=err.message; }
+    };
+    $("form-reg").onsubmit = async (e) => {
+      e.preventDefault();
+      try {
+        await PZ.api("POST", "/auth/registro", { nombre: $("re-nombre").value.trim(), email: $("re-email").value.trim(), password: $("re-pass").value });
+        $("msg").className="ok"; $("msg").textContent="Cuenta creada, ya podés iniciar sesión.";
+      } catch (err) { $("msg").className="error"; $("msg").textContent=err.message; }
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+* { box-sizing: border-box; }
+body { font-family: system-ui, sans-serif; background: #f4f6f8; margin: 0; color: #222; }
+header { background: #1f6feb; color: white; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+header h1 { margin: 0; font-size: 20px; }
+main { padding: 24px; max-width: 1000px; margin: 0 auto; }
+.card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 20px; }
+.card.login { max-width: 400px; margin: 60px auto; }
+h2 { margin-top: 0; }
+form { display: flex; flex-direction: column; gap: 10px; }
+form.inline { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; align-items: end; }
+label { font-size: 13px; font-weight: 600; }
+input, select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; width: 100%; }
+button { background: #1f6feb; color: white; border: none; padding: 9px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; }
+button.danger { background: #d73a49; }
+button.secondary { background: #6a737d; }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+th, td { padding: 8px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
+th { background: #fafbfc; }
+.error { color: #d73a49; margin-top: 8px; }
+.ok { color: #22863a; margin-top: 8px; }
+.tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+.tabs button.active { background: #0a4ab4; }
+.actions { display: flex; gap: 6px; }
+.actions button, .actions select { padding: 4px 8px; font-size: 12px; }
+header button { background: white; color: #1f6feb; padding: 6px 12px; margin-left: 12px; }

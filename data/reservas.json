@@ -1,0 +1,50 @@
+[
+  {
+    "id": "r-0001",
+    "cancha": "cancha1",
+    "fecha": "2026-05-20",
+    "hora_inicio": "18:00",
+    "duracion": 90,
+    "nombre_cliente": "Juan Pérez",
+    "cliente_id": "u3",
+    "estado": "confirmada",
+    "precio": 45000,
+    "created_at": "2026-05-14T10:00:00"
+  },
+  {
+    "id": "r-0002",
+    "cancha": "cancha2",
+    "fecha": "2026-05-20",
+    "hora_inicio": "20:00",
+    "duracion": 60,
+    "nombre_cliente": "María Gómez",
+    "cliente_id": "u4",
+    "estado": "pendiente",
+    "precio": 45000,
+    "created_at": "2026-05-14T10:05:00"
+  },
+  {
+    "id": "r-0003",
+    "cancha": "cancha1",
+    "fecha": "2026-05-21",
+    "hora_inicio": "19:00",
+    "duracion": 60,
+    "nombre_cliente": "Juan Pérez",
+    "cliente_id": "u3",
+    "estado": "finalizada",
+    "precio": 45000,
+    "created_at": "2026-05-14T10:10:00"
+  },
+  {
+    "id": "r-f0aa5c10",
+    "cancha": "cancha1",
+    "fecha": "2026-05-08",
+    "hora_inicio": "08:00",
+    "duracion": 90,
+    "nombre_cliente": "lhp",
+    "cliente_id": null,
+    "estado": "pendiente",
+    "precio": 45000,
+    "created_at": "2026-05-14T19:09:15.376215"
+  }
+]

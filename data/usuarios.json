@@ -1,0 +1,6 @@
+[
+  {"id": "u1", "email": "admin@padelzone.com", "password": "admin123", "rol": "admin", "nombre": "Admin"},
+  {"id": "u2", "email": "operador@padelzone.com", "password": "oper123", "rol": "operador", "nombre": "Operador"},
+  {"id": "u3", "email": "cliente@test.com", "password": "cliente123", "rol": "cliente", "nombre": "Juan Pérez"},
+  {"id": "u4", "email": "maria@test.com", "password": "maria123", "rol": "cliente", "nombre": "María Gómez"}
+]
