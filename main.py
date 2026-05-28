@@ -4,6 +4,9 @@ TP Testing de Aplicaciones - UADE.
 """
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
 import json
 import logging
 import os
@@ -95,15 +98,52 @@ class EstadoIn(BaseModel):
 
 
 # ---------- Auth ----------
+# Tokens firmados con HMAC: no requieren almacenamiento de sesion,
+# cualquier instancia del backend puede validarlos. Esto es necesario para
+# que la autenticacion funcione bien en entornos serverless como Vercel,
+# donde cada peticion puede ir a una instancia distinta.
+SESSION_SECRET = os.environ.get(
+    "SESSION_SECRET", "padelzone-tp-uade-2026-default-secret-please-override"
+)
+
+
+def crear_token(user_id: str) -> str:
+    expira = (datetime.utcnow() + timedelta(hours=8)).isoformat()
+    payload = json.dumps({"user_id": user_id, "expira": expira})
+    payload_b64 = base64.urlsafe_b64encode(payload.encode()).decode().rstrip("=")
+    firma = hmac.new(
+        SESSION_SECRET.encode(), payload_b64.encode(), hashlib.sha256
+    ).hexdigest()
+    return f"{payload_b64}.{firma}"
+
+
+def verificar_token(token: str) -> Optional[dict]:
+    try:
+        payload_b64, firma = token.split(".")
+        firma_esperada = hmac.new(
+            SESSION_SECRET.encode(), payload_b64.encode(), hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(firma, firma_esperada):
+            return None
+        padding = (4 - len(payload_b64) % 4) % 4
+        payload = json.loads(
+            base64.urlsafe_b64decode(payload_b64 + "=" * padding).decode()
+        )
+        if datetime.fromisoformat(payload["expira"]) < datetime.utcnow():
+            return None
+        return payload
+    except Exception:
+        return None
+
+
 def usuario_actual(x_session_token: Optional[str] = Header(default=None)) -> dict:
     if not x_session_token:
         raise HTTPException(401, "Falta token de sesion")
-    sesiones = leer("sessions.json", {})
-    sesion = sesiones.get(x_session_token)
-    if not sesion or datetime.fromisoformat(sesion["expira"]) < datetime.utcnow():
+    payload = verificar_token(x_session_token)
+    if not payload:
         raise HTTPException(401, "Sesion invalida o expirada")
     for u in leer("usuarios.json", []):
-        if u["id"] == sesion["user_id"]:
+        if u["id"] == payload["user_id"]:
             return u
     raise HTTPException(401, "Usuario no encontrado")
 
@@ -146,13 +186,7 @@ def registro(body: RegistroIn):
 def login(body: LoginIn):
     for u in leer("usuarios.json", []):
         if u["email"].lower() == body.email.lower() and u["password"] == body.password:
-            token = secrets.token_urlsafe(24)
-            sesiones = leer("sessions.json", {})
-            sesiones[token] = {
-                "user_id": u["id"],
-                "expira": (datetime.utcnow() + timedelta(hours=8)).isoformat(),
-            }
-            escribir("sessions.json", sesiones)
+            token = crear_token(u["id"])
             log.info("Login OK %s rol=%s", u["email"], u["rol"])
             return {"token": token, "user_id": u["id"], "nombre": u["nombre"], "rol": u["rol"]}
     log.warning("Login fallido %s", body.email)
@@ -161,10 +195,8 @@ def login(body: LoginIn):
 
 @app.post("/auth/logout")
 def logout(x_session_token: Optional[str] = Header(default=None)):
-    if x_session_token:
-        sesiones = leer("sessions.json", {})
-        sesiones.pop(x_session_token, None)
-        escribir("sessions.json", sesiones)
+    # Con tokens firmados (sin almacenamiento), el logout del lado servidor
+    # es informativo: el cliente debe descartar el token localmente.
     return {"ok": True}
 
 
