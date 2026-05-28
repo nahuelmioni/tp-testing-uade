@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import secrets
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -20,30 +21,48 @@ from pydantic import BaseModel
 BASE = Path(__file__).parent
 DATA = BASE / "data"
 STATIC = BASE / "static"
-LOG_FILE = BASE / "app.log"
 
 PRECIO = 45000
 DURACIONES = {60, 90, 120}
 APERTURA, CIERRE = 8 * 60, 23 * 60  # minutos desde 00:00
 
+# En Vercel el filesystem es read-only excepto /tmp. Detectamos el entorno
+# para guardar sesiones en /tmp y silenciar errores de escritura en data/.
+IS_VERCEL = bool(os.environ.get("VERCEL"))
+
+_log_handlers = [logging.StreamHandler()]
+if not IS_VERCEL:
+    _log_handlers.append(logging.FileHandler(BASE / "app.log"))
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.FileHandler(LOG_FILE), logging.StreamHandler()],
+    handlers=_log_handlers,
 )
 log = logging.getLogger("padelzone")
 
 
 # ---------- Helpers de archivos JSON ----------
+def _path(archivo: str) -> Path:
+    if archivo == "sessions.json" and IS_VERCEL:
+        return Path("/tmp/sessions.json")
+    return DATA / archivo
+
+
 def leer(archivo: str, default):
-    f = DATA / archivo
+    f = _path(archivo)
     return json.loads(f.read_text(encoding="utf-8")) if f.exists() else default
 
 
 def escribir(archivo: str, data):
-    (DATA / archivo).write_text(
-        json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
+    f = _path(archivo)
+    try:
+        f.write_text(
+            json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+    except OSError as e:
+        # En Vercel data/ es read-only. Sessions van a /tmp y si funcionan.
+        log.warning("No se pudo escribir %s: %s", archivo, e)
 
 
 def minutos(hhmm: str) -> int:
