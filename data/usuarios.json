@@ -1,5 +1,13 @@
 [
   {"id": "u1", "email": "admin@admin.com", "password": "123", "rol": "admin", "nombre": "Admin"},
   {"id": "u3", "email": "cliente@test.com", "password": "cliente123", "rol": "cliente", "nombre": "Juan Pérez"},
-  {"id": "u4", "email": "maria@test.com", "password": "maria123", "rol": "cliente", "nombre": "María Gómez"}
+  {"id": "u4", "email": "maria@test.com", "password": "maria123", "rol": "cliente", "nombre": "María Gómez"},
+  {"id": "u5", "email": "carlos.rodriguez@test.com", "password": "carlos123", "rol": "cliente", "nombre": "Carlos Rodríguez"},
+  {"id": "u6", "email": "lucia.fernandez@test.com", "password": "lucia123", "rol": "cliente", "nombre": "Lucía Fernández"},
+  {"id": "u7", "email": "diego.martinez@test.com", "password": "diego123", "rol": "cliente", "nombre": "Diego Martínez"},
+  {"id": "u8", "email": "sofia.lopez@test.com", "password": "sofia123", "rol": "cliente", "nombre": "Sofía López"},
+  {"id": "u9", "email": "tomas.garcia@test.com", "password": "tomas123", "rol": "cliente", "nombre": "Tomás García"},
+  {"id": "u10", "email": "valentina.sanchez@test.com", "password": "valen123", "rol": "cliente", "nombre": "Valentina Sánchez"},
+  {"id": "u11", "email": "federico.gonzalez@test.com", "password": "fede123", "rol": "cliente", "nombre": "Federico González"},
+  {"id": "u12", "email": "camila.ramirez@test.com", "password": "cami123", "rol": "cliente", "nombre": "Camila Ramírez"}
 ]
