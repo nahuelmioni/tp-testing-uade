@@ -37,8 +37,7 @@ pip install -r requirements.txt
 
 | Rol      | Email                  | Password    |
 |----------|------------------------|-------------|
-| admin    | admin@padelzone.com    | admin123    |
-| operador | operador@padelzone.com | oper123     |
+| admin    | admin@admin.com        | 123         |
 | cliente  | cliente@test.com       | cliente123  |
 | cliente  | maria@test.com         | maria123    |
 
@@ -60,7 +59,7 @@ Todas las llamadas autenticadas requieren header `X-Session-Token: <token>`.
 - No se permiten reservas solapadas en la misma cancha y fecha.
 - Precio fijo: $45.000.
 - Estados: pendiente → confirmada → finalizada.
-- Roles: cliente (crea, ve solo las suyas), operador (cambia estado), admin (además puede borrar).
+- Roles: cliente (crea reservas a su nombre y ve solo las suyas), admin (ve todas, cambia estado y elimina).
 
 ## Tests
 

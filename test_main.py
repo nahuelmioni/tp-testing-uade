@@ -30,18 +30,18 @@ def login(client, email, password):
 
 # ---------- Auth ----------
 def test_login_ok(client):
-    r = client.post("/auth/login", json={"email": "admin@padelzone.com", "password": "admin123"})
+    r = client.post("/auth/login", json={"email": "admin@admin.com", "password": "123"})
     assert r.status_code == 200
     assert r.json()["rol"] == "admin"
 
 
 def test_login_password_incorrecta(client):
-    r = client.post("/auth/login", json={"email": "admin@padelzone.com", "password": "x"})
+    r = client.post("/auth/login", json={"email": "admin@admin.com", "password": "x"})
     assert r.status_code == 401
 
 
 def test_registro_duplicado(client):
-    r = client.post("/auth/registro", json={"email": "admin@padelzone.com", "password": "x123", "nombre": "X"})
+    r = client.post("/auth/registro", json={"email": "admin@admin.com", "password": "x123", "nombre": "X"})
     assert r.status_code == 409
 
 
@@ -58,14 +58,14 @@ def _payload(**ov):
 
 
 def test_crear_reserva_ok(client):
-    h = login(client, "admin@padelzone.com", "admin123")
+    h = login(client, "admin@admin.com", "123")
     r = client.post("/reservas", json=_payload(), headers=h)
     assert r.status_code == 201
     assert r.json()["estado"] == "pendiente"
 
 
 def test_reserva_solapada_falla(client):
-    h = login(client, "admin@padelzone.com", "admin123")
+    h = login(client, "admin@admin.com", "123")
     assert client.post("/reservas", json=_payload(hora_inicio="14:00", duracion=90), headers=h).status_code == 201
     r = client.post("/reservas", json=_payload(hora_inicio="15:00"), headers=h)
     assert r.status_code == 400
@@ -73,17 +73,17 @@ def test_reserva_solapada_falla(client):
 
 
 def test_duracion_invalida(client):
-    h = login(client, "admin@padelzone.com", "admin123")
+    h = login(client, "admin@admin.com", "123")
     assert client.post("/reservas", json=_payload(duracion=45), headers=h).status_code == 400
 
 
 def test_fuera_de_horario(client):
-    h = login(client, "admin@padelzone.com", "admin123")
+    h = login(client, "admin@admin.com", "123")
     assert client.post("/reservas", json=_payload(hora_inicio="07:00"), headers=h).status_code == 400
 
 
 def test_filtro_por_cliente_endpoint_nuevo(client):
-    h = login(client, "admin@padelzone.com", "admin123")
+    h = login(client, "admin@admin.com", "123")
     r = client.get("/reservas?cliente=u3", headers=h)
     assert r.status_code == 200
     assert all(x["cliente_id"] == "u3" for x in r.json())
@@ -102,7 +102,7 @@ def test_eliminar_requiere_admin(client):
 
 # ---------- Canchas / disponibilidad (endpoint nuevo) ----------
 def test_disponibilidad(client):
-    h = login(client, "admin@padelzone.com", "admin123")
+    h = login(client, "admin@admin.com", "123")
     r = client.get("/canchas/cancha1/disponibilidad?fecha=2026-05-20", headers=h)
     assert r.status_code == 200
     horas = {s["hora_inicio"] for s in r.json()}
@@ -113,7 +113,7 @@ def test_disponibilidad(client):
 
 
 def test_disponibilidad_dia_libre(client):
-    h = login(client, "admin@padelzone.com", "admin123")
+    h = login(client, "admin@admin.com", "123")
     r = client.get("/canchas/cancha2/disponibilidad?fecha=2030-01-01", headers=h)
     # 8..22 = 15 slots
     assert len(r.json()) == 15

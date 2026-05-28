@@ -86,13 +86,12 @@
       const tb = document.querySelector("#t-reservas tbody");
       tb.innerHTML = "";
       if (!rows.length) { tb.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#888">Sin reservas</td></tr>'; return; }
-      const staff = user.rol === "admin" || user.rol === "operador";
       const admin = user.rol === "admin";
       for (const r of rows) {
         const tr = document.createElement("tr");
         tr.innerHTML = `<td>${r.id}</td><td>${r.cancha}</td><td>${r.fecha}</td><td>${r.hora_inicio}</td><td>${r.duracion}</td><td>${r.nombre_cliente}</td><td>${r.estado}</td><td>$${r.precio.toLocaleString("es-AR")}</td><td class="actions"></td>`;
         const act = tr.querySelector(".actions");
-        if (staff) {
+        if (admin) {
           const s = document.createElement("select");
           ["pendiente","confirmada","finalizada"].forEach(e => { const o = new Option(e,e); if (e===r.estado) o.selected=true; s.add(o); });
           s.onchange = async () => { try { await PZ.api("PATCH", `/reservas/${r.id}`, { estado: s.value }); cargarReservas(); } catch(err) { alert(err.message); } };

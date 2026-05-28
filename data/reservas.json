@@ -34,17 +34,5 @@
     "estado": "finalizada",
     "precio": 45000,
     "created_at": "2026-05-14T10:10:00"
-  },
-  {
-    "id": "r-f0aa5c10",
-    "cancha": "cancha1",
-    "fecha": "2026-05-08",
-    "hora_inicio": "08:00",
-    "duracion": 90,
-    "nombre_cliente": "lhp",
-    "cliente_id": null,
-    "estado": "pendiente",
-    "precio": 45000,
-    "created_at": "2026-05-14T19:09:15.376215"
   }
 ]

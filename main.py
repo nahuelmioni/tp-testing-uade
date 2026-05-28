@@ -244,7 +244,7 @@ def crear_reserva(body: ReservaIn, u: dict = Depends(usuario_actual)):
 
 
 @app.patch("/reservas/{reserva_id}")
-def cambiar_estado(reserva_id: str, body: EstadoIn, _: dict = Depends(requiere_rol("admin", "operador"))):
+def cambiar_estado(reserva_id: str, body: EstadoIn, _: dict = Depends(requiere_rol("admin"))):
     if body.estado not in {"pendiente", "confirmada", "finalizada"}:
         raise HTTPException(400, "Estado invalido")
     reservas = leer("reservas.json", [])
