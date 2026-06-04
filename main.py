@@ -11,10 +11,12 @@ import json
 import logging
 import os
 import secrets
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
+import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -45,7 +47,50 @@ logging.basicConfig(
 log = logging.getLogger("padelzone")
 
 
-# ---------- Helpers de archivos JSON ----------
+# ---------- Almacenamiento: JSONBin.io o archivos locales ----------
+# Si estan definidas las env vars JSONBIN_BIN_ID y JSONBIN_MASTER_KEY,
+# los datos se leen y escriben en JSONBin (permite persistencia en Vercel).
+# Si no, se usan los archivos locales en data/ (modo desarrollo local).
+JSONBIN_BIN_ID = os.environ.get("JSONBIN_BIN_ID")
+JSONBIN_MASTER_KEY = os.environ.get("JSONBIN_MASTER_KEY")
+JSONBIN_BASE = "https://api.jsonbin.io/v3"
+USAR_JSONBIN = bool(JSONBIN_BIN_ID and JSONBIN_MASTER_KEY)
+
+# Cache simple en memoria con TTL de 5 segundos para evitar pegarle a JSONBin
+# en cada llamada y consumir cuota innecesariamente.
+_cache: dict = {"data": None, "expira": 0.0}
+
+
+def _jsonbin_get_record() -> dict:
+    if _cache["data"] is not None and time.time() < _cache["expira"]:
+        return _cache["data"]
+    r = httpx.get(
+        f"{JSONBIN_BASE}/b/{JSONBIN_BIN_ID}/latest",
+        headers={"X-Master-Key": JSONBIN_MASTER_KEY},
+        timeout=10.0,
+    )
+    r.raise_for_status()
+    record = r.json()["record"]
+    _cache["data"] = record
+    _cache["expira"] = time.time() + 5
+    return record
+
+
+def _jsonbin_put_record(record: dict) -> None:
+    r = httpx.put(
+        f"{JSONBIN_BASE}/b/{JSONBIN_BIN_ID}",
+        headers={
+            "X-Master-Key": JSONBIN_MASTER_KEY,
+            "Content-Type": "application/json",
+        },
+        json=record,
+        timeout=10.0,
+    )
+    r.raise_for_status()
+    _cache["data"] = record
+    _cache["expira"] = time.time() + 5
+
+
 def _path(archivo: str) -> Path:
     if archivo == "sessions.json" and IS_VERCEL:
         return Path("/tmp/sessions.json")
@@ -53,18 +98,32 @@ def _path(archivo: str) -> Path:
 
 
 def leer(archivo: str, default):
+    if USAR_JSONBIN:
+        try:
+            record = _jsonbin_get_record()
+            return record.get(archivo.replace(".json", ""), default)
+        except Exception as e:
+            log.error("JSONBin GET error: %s", e)
+            return default
     f = _path(archivo)
     return json.loads(f.read_text(encoding="utf-8")) if f.exists() else default
 
 
 def escribir(archivo: str, data):
+    if USAR_JSONBIN:
+        try:
+            record = _jsonbin_get_record()
+            record[archivo.replace(".json", "")] = data
+            _jsonbin_put_record(record)
+        except Exception as e:
+            log.error("JSONBin PUT error: %s", e)
+        return
     f = _path(archivo)
     try:
         f.write_text(
             json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
         )
     except OSError as e:
-        # En Vercel data/ es read-only. Sessions van a /tmp y si funcionan.
         log.warning("No se pudo escribir %s: %s", archivo, e)
 
 
