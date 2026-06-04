@@ -70,20 +70,23 @@ def _jsonbin_get_record() -> dict:
         timeout=10.0,
     )
     r.raise_for_status()
-    record = r.json()["record"]
+    # Forzamos decodificacion como UTF-8 para preservar tildes y enie.
+    record = json.loads(r.content.decode("utf-8"))["record"]
     _cache["data"] = record
     _cache["expira"] = time.time() + 5
     return record
 
 
 def _jsonbin_put_record(record: dict) -> None:
+    # Enviamos UTF-8 explicito para que las tildes y enie se guarden bien.
+    body = json.dumps(record, ensure_ascii=False).encode("utf-8")
     r = httpx.put(
         f"{JSONBIN_BASE}/b/{JSONBIN_BIN_ID}",
         headers={
             "X-Master-Key": JSONBIN_MASTER_KEY,
-            "Content-Type": "application/json",
+            "Content-Type": "application/json; charset=utf-8",
         },
-        json=record,
+        content=body,
         timeout=10.0,
     )
     r.raise_for_status()
