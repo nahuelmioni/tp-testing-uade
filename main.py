@@ -287,8 +287,8 @@ def disponibilidad(cancha_id: str, fecha: str, _: dict = Depends(usuario_actual)
         inicio = h * 60
         fin = inicio + 60
         ocupado = any(
-            inicio > minutos(r["hora_inicio"]) + r["duracion"]
-            and minutos(r["hora_inicio"]) > fin
+            inicio < minutos(r["hora_inicio"]) + r["duracion"]
+            and minutos(r["hora_inicio"]) < fin
             for r in reservas_dia
         )
         if not ocupado:
@@ -305,6 +305,9 @@ def listar_reservas(
     u: dict = Depends(usuario_actual),
 ):
     reservas = leer("reservas.json", [])
+    # Un cliente solo puede ver sus propias reservas
+    if u["rol"] == "cliente":
+        reservas = [r for r in reservas if r.get("cliente_id") == u["id"]]
     if fecha:
         reservas = [r for r in reservas if r["fecha"] == fecha]
     if cancha:
@@ -330,7 +333,14 @@ def crear_reserva(body: ReservaIn, u: dict = Depends(usuario_actual)):
         raise HTTPException(400, "Fuera del horario 08:00-23:00")
 
     reservas = leer("reservas.json", [])
-    # NOTA: validacion de solape pendiente de implementar
+    # Validacion de solape: misma cancha y fecha, intervalos que se cruzan
+    fin = inicio + body.duracion
+    for r in reservas:
+        if r["cancha"] == body.cancha and r["fecha"] == body.fecha:
+            r_inicio = minutos(r["hora_inicio"])
+            r_fin = r_inicio + r["duracion"]
+            if inicio < r_fin and r_inicio < fin:
+                raise HTTPException(400, "La reserva se solapa con otra existente en esa cancha y horario")
 
     nueva = {
         "id": "r-" + secrets.token_hex(4),
@@ -358,7 +368,7 @@ def cambiar_estado(reserva_id: str, body: EstadoIn, _: dict = Depends(requiere_r
     for r in reservas:
         if r["id"] == reserva_id:
             r["estado"] = body.estado
-            # TODO: persistir cambio
+            escribir("reservas.json", reservas)
             log.info("Reserva %s -> %s", reserva_id, body.estado)
             return r
     raise HTTPException(404, "Reserva no encontrada")

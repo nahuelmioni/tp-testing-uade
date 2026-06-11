@@ -67,8 +67,17 @@ def test_crear_reserva_ok(client):
 def test_crear_segunda_reserva(client):
     h = login(client, "admin@admin.com", "123")
     assert client.post("/reservas", json=_payload(hora_inicio="14:00", duracion=90), headers=h).status_code == 201
-    r = client.post("/reservas", json=_payload(hora_inicio="15:00"), headers=h)
+    # 16:00 no se solapa con 14:00-15:30
+    r = client.post("/reservas", json=_payload(hora_inicio="16:00"), headers=h)
     assert r.status_code == 201
+
+
+def test_reserva_solapada_rechazada(client):
+    h = login(client, "admin@admin.com", "123")
+    assert client.post("/reservas", json=_payload(hora_inicio="14:00", duracion=90), headers=h).status_code == 201
+    # 15:00 cae dentro de 14:00-15:30 -> debe rechazarse
+    r = client.post("/reservas", json=_payload(hora_inicio="15:00"), headers=h)
+    assert r.status_code == 400
 
 
 def test_duracion_invalida(client):
